@@ -16,7 +16,7 @@ public:
         //m_sampleRunner.addSample(new SampleInterleaved(this));
         //m_sampleRunner.addSample(new SampleInterleavedIndexed(this));
         m_sampleRunner.addSample(new SampleCube(this));
-        m_sampleRunner.addSample(new SampleMapBuffer(this));
+        //m_sampleRunner.addSample(new SampleMapBuffer(this));
     }
 
     ~Week2()

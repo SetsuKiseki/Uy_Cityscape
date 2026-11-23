@@ -2,32 +2,34 @@
 #include "../samplefw/Grid2D.h"
 
 const float SPACING = 10.0f; // space between individual cubes
-const float MIN_HEIGHT = 0.8f;
-const float MAX_HEIGHT = 6.0f;
-const float MIN_WIDTH = 0.8f;
-const float MAX_WIDTH = 6.0f;
-const float MIN_DEPTH = 0.8f;
-const float MAX_DEPTH = 6.0f;
 
 SampleCube::~SampleCube()
 {
 	printf("Destroying Cube Sample\n");
-	for (Cube* pBuilding : m_buildings) // used pCube for readability purposes
-	{
-		delete pBuilding;
-	}
-	m_buildings.clear();
-
+	delete m_pCubeManager;
 	delete m_pOrbitCam;
 	delete m_pGrid;
 }
 
 void SampleCube::init()
 {
+	glEnable(GL_DEPTH_TEST);
+
+
+	if(!m_pCubeManager)
+	{
+		m_pCubeManager = new CubeManager();
+		m_pCubeManager -> buildCity(COLUMNS, ROWS, SPACING);
+
+		m_pOrbitCam = new OrbitCamera(m_pApp);
+		m_pOrbitCam -> focusOn(m_pCubeManager -> getBoundsMin(), m_pCubeManager -> getBoundsMax());
+	}
+
+	printf("Successfully initialized Cube Sample (%d buildings)\n", m_pCubeManager -> getBuildingCount());
     // Only init if not already done
+	/*
     if(m_buildings.empty())
     {
-		glEnable(GL_DEPTH_TEST);
 
 		for(int row = 0; row < ROWS; ++row){
 			for(int col = 0; col < COLUMNS; ++col){
@@ -40,14 +42,14 @@ void SampleCube::init()
 				// Center columns on both x and z
 				pBuilding ->setPosition(glm::vec3(
 					(col - (COLUMNS - 1) / 2.0f) * SPACING,
-    				(depth / 2.0f),
+    				(height / 2.0f),
     				(row - (ROWS - 1) / 2.0f) * SPACING
 				));
 
 				pBuilding ->setScale(glm::vec3(
 					width,
-					depth,
-					height
+					height,
+					depth
 				));
 
 				pBuilding ->setColor(
@@ -69,11 +71,13 @@ void SampleCube::init()
 		m_pOrbitCam->focusOn(glm::vec3(-2.0f, 0.0f, -14.0f), glm::vec3(2.0f, 2.0f, 1.0f));
 	}
 	printf("Successfully initialized Cube Sample\n");
+	*/
 }
 
 void SampleCube::update(float dt)
 {
-	m_pOrbitCam->update(dt);
+	m_pOrbitCam -> update(dt);
+	m_pCubeManager -> update(dt);
 }
 
 void SampleCube::render(int width, int height)
@@ -85,10 +89,5 @@ void SampleCube::render(int width, int height)
 	glm::mat4 mProj = m_pOrbitCam->getProjMatrix(width, height);
 	glm::mat4 mView = m_pOrbitCam->getViewMatrix();
 
-	m_pGrid->render(mView, mProj);
-
-	for (Cube* pBuilding : m_buildings)
-	{
-	    pBuilding->render(mView, mProj);
-	}
+	m_pCubeManager -> render(mView, mProj);
 }

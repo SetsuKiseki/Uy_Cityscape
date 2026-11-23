@@ -2,7 +2,7 @@
 #include <vector>
 #include "../wolf/wolf.h"
 #include "../samplefw/Sample.h"
-#include "Cube.h"
+#include "CubeManager.h"
 #include "../samplefw/OrbitCamera.h"
 #include "../samplefw/Grid3D.h"
 
@@ -17,12 +17,10 @@ public:
     void render(int width, int height) override;
 
 private:
-    static const int COLUMNS = 3;
-    static const int ROWS = 3;
+    static const int COLUMNS = 20;
+    static const int ROWS = 20;
 
-    std::vector<Cube*> m_buildings;
-
-    Cube*        m_pGround   = nullptr;
+    CubeManager* m_pCubeManager   = nullptr;
     OrbitCamera* m_pOrbitCam = nullptr;
     Grid3D*      m_pGrid     = nullptr;
 };
