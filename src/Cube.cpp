@@ -2,8 +2,10 @@
 
 struct CubeVertex
 {
-    GLfloat x, y, z;
-    GLubyte r, g, b, a;
+    GLfloat x, y, z; // position
+    GLfloat nx, ny, nz; // face
+    GLfloat u, v; // texture coordinates
+    GLubyte r, g, b, a; // shade
 };
 
 static const unsigned short gs_cubeIndices [] = {
@@ -59,6 +61,8 @@ static const int CUBE_NUM_VERTS = sizeof(gs_cubeVertices) / sizeof(gs_cubeVertic
 // Uniform locations looked up only once instead of every draw name
 static GLint s_locTransformed = -1;
 static GLint s_locColor = -1;
+static GLint s_locScale = -1;
+static GLint s_locTileSize = -1;
 
 GLuint Cube::s_program = 0;
 GLuint Cube::s_vbo = 0;
@@ -79,6 +83,11 @@ Cube::Cube()
         {
             s_locTransformed = glGetUniformLocation(s_program, "transformed");
             s_locColor = glGetUniformLocation(s_program, "u_color");
+            s_locScale = glGetUniformLocation(s_program, "u_scale");
+            s_locTileSize = glGetUniformLocation(s_program, "u_tileSize");
+
+            glUseProgram(s_program);
+            glUniform1i(glGetUniformLocation(s_program,"tex"), 0);
         }
 
         // Create VBO and VAO
@@ -96,27 +105,54 @@ Cube::Cube()
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(gs_cubeIndices), gs_cubeIndices, GL_STATIC_DRAW);
 
         int posAttr = glGetAttribLocation(s_program, "a_position");
+        int normalAttr = glGetAttribLocation(s_program, "a_normal");
+        int uvAttr = glGetAttribLocation(s_program, "a_uv");
         int colorAttr = glGetAttribLocation(s_program, "a_color");
 
         if (posAttr >= 0)
         {
             glVertexAttribPointer(
-                                posAttr,            // Attribute location
-                                3,                  // Number of components
-                                GL_FLOAT,           // Type of each component
-                                GL_FALSE,            // Normalize?
-                                sizeof(CubeVertex), // Stride
-                                0);                 // Offset
+                                posAttr,                // Attribute location
+                                3,                      // Number of components
+                                GL_FLOAT,               // Type of each component
+                                GL_FALSE,               // Normalize?
+                                sizeof(CubeVertex),     // Stride
+                                0);                     // Offset
             glEnableVertexAttribArray(posAttr);
+        }
+        if (normalAttr >= 0)
+        {
+            glVertexAttribPointer(
+                                normalAttr,                     // Attribute location
+                                3,                              // Number of components
+                                GL_FLOAT,                       // Type of each component
+                                GL_FALSE,                       // Normalize?
+                                sizeof(CubeVertex),             // Stride
+                                (void*)offsetof(CubeVertex, nx) // Offset
+            );
+            glEnableVertexAttribArray(normalAttr);
+        }
+        if (uvAttr >= 0)
+        {
+            glVertexAttribPointer(
+                                uvAttr,                         // Attribute location
+                                2,                              // Number of components
+                                GL_FLOAT,                       // Type of each component
+                                GL_FALSE,                       // Normalize?
+                                sizeof(CubeVertex),             // Stride
+                                (void*)offsetof(CubeVertex, u)  // Offset
+            );
+            glEnableVertexAttribArray(uvAttr);
         }
         if (colorAttr >= 0)
         {
-            glVertexAttribPointer(colorAttr,                      // Attribute location
-                              4,                              // Number of components
-                              GL_UNSIGNED_BYTE,               // Type of each component
-                              GL_TRUE,                        // Normalize?
-                              sizeof(CubeVertex),             // Stride
-                              (void *)(sizeof(GLfloat) * 3)); // Offset
+            glVertexAttribPointer(
+                                colorAttr,                      // Attribute location
+                                4,                              // Number of components
+                                GL_UNSIGNED_BYTE,               // Type of each component
+                                GL_TRUE,                        // Normalize?
+                                sizeof(CubeVertex),             // Stride
+                                (void *)(sizeof(GLfloat) * 3)); // Offset
             glEnableVertexAttribArray(colorAttr);
         }
 
@@ -136,7 +172,7 @@ Cube::~Cube()
         glDeleteBuffers(1, &s_ibo);
         glDeleteProgram(s_program);
         s_vao = s_vbo = s_ibo = s_program = 0;
-        s_locTransformed = s_locColor = -1;
+        s_locTransformed = s_locColor = s_locScale = s_locTileSize = -1;
     }
 }
 
@@ -172,16 +208,24 @@ void Cube::render(const glm::mat4& view, const glm::mat4& proj)
 
     // set uniform
     glUniformMatrix4fv(
-        glGetUniformLocation(s_program,"transformed"), 
+        s_locTransformed, 
         1,
         GL_FALSE,
         glm::value_ptr(transformed)
     );
     glUniform4fv(
-        glGetUniformLocation(s_program,"u_color"), 
+        s_locColor, 
         1,
         glm::value_ptr(m_color)
     );
+    // Sizes the UV per face
+    glUniform3fv(
+        s_locScale, 
+        1,
+        glm::value_ptr(m_color)
+    );
+    glUniform1f(s_locTileSize, m_tileSize);
+    
 
     // Bind VAO and draw
     glBindVertexArray(s_vao);

@@ -34,6 +34,7 @@ class Cube
         glm::vec3 m_scale = glm::vec3(1.0f);
         glm::vec3 m_rotation = glm::vec3(0.0f);
         glm::vec4 m_color = glm::vec4(1.0f);
+        float m_tileSize = 3.0f;
 
         // Shared resources for all Cube instances
         static GLuint s_program;

@@ -4,6 +4,7 @@
 struct PlaneVertex
 {
     GLfloat x,y,z;
+    GLfloat u, v;
 };
 
 GLuint Plane::s_program = 0;
