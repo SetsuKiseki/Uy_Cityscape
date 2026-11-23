@@ -11,10 +11,10 @@
 class Week2: public wolf::App
 {
 public:
-    Week2() : App("Week 4")
+    Week2() : App("CityScape")
     {
-        m_sampleRunner.addSample(new SampleInterleaved(this));
-        m_sampleRunner.addSample(new SampleInterleavedIndexed(this));
+        //m_sampleRunner.addSample(new SampleInterleaved(this));
+        //m_sampleRunner.addSample(new SampleInterleavedIndexed(this));
         m_sampleRunner.addSample(new SampleCube(this));
         m_sampleRunner.addSample(new SampleMapBuffer(this));
     }

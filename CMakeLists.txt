@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5.0)
+cmake_minimum_required(VERSION 3.6.0)
 project(sample VERSION 0.1.0)
 
 # The bundled third-party submodules (glfw, glm, assimp, glew) still declare

@@ -1,114 +1,79 @@
 #include "sampleCube.h"
 #include "../samplefw/Grid2D.h"
 
-struct Vertex
-{
-	GLfloat x,y,z;
-	GLubyte r,g,b,a;
-};
-
-static const Vertex gs_cubeVertices[] = {
-// Front
-	{ -0.5f, -0.5f, 0.5f, 255, 0, 0, 255 },
-	{ -0.5f,  0.5f, 0.5f, 255, 0, 0, 255 },
-	{  0.5f,  0.5f, 0.5f, 255, 0, 0, 255 },
-	{  0.5f,  0.5f, 0.5f, 255, 0, 0, 255 },
-	{  0.5f, -0.5f, 0.5f, 255, 0, 0, 255 },
-	{ -0.5f, -0.5f, 0.5f, 255, 0, 0, 255 },
-
-	// Back
-	{  0.5f,  0.5f,-0.5f, 128, 0, 0, 255 },
-	{ -0.5f,  0.5f,-0.5f, 128, 0, 0, 255 },
-	{ -0.5f, -0.5f,-0.5f, 128, 0, 0, 255 },
-	{ -0.5f, -0.5f,-0.5f, 128, 0, 0, 255 },
-	{  0.5f, -0.5f,-0.5f, 128, 0, 0, 255 },
-	{  0.5f,  0.5f,-0.5f, 128, 0, 0, 255 },
-
-	// Left
-	{ -0.5f,  0.5f,-0.5f, 0, 255, 0, 255 },
-	{ -0.5f,  0.5f, 0.5f, 0, 255, 0, 255 },
-	{ -0.5f, -0.5f, 0.5f, 0, 255, 0, 255 },
-	{ -0.5f, -0.5f, 0.5f, 0, 255, 0, 255 },
-	{ -0.5f, -0.5f,-0.5f, 0, 255, 0, 255 },
-	{ -0.5f,  0.5f,-0.5f, 0, 255, 0, 255 },
-
-	// Right
-	{  0.5f,  0.5f, 0.5f, 0, 128, 0, 255 },
-	{  0.5f,  0.5f,-0.5f, 0, 128, 0, 255 },
-	{  0.5f, -0.5f,-0.5f, 0, 128, 0, 255 },
-	{  0.5f, -0.5f,-0.5f, 0, 128, 0, 255 },
-	{  0.5f, -0.5f, 0.5f, 0, 128, 0, 255 },
-	{  0.5f,  0.5f, 0.5f, 0, 128, 0, 255 },
-
-	// Top
-	{ -0.5f,  0.5f, 0.5f, 0, 0, 255, 255 },
-	{ -0.5f,  0.5f,-0.5f, 0, 0, 255, 255 },
-	{  0.5f,  0.5f,-0.5f, 0, 0, 255, 255 },
-	{  0.5f,  0.5f,-0.5f, 0, 0, 255, 255 },
-	{  0.5f,  0.5f, 0.5f, 0, 0, 255, 255 },
-	{ -0.5f,  0.5f, 0.5f, 0, 0, 255, 255 },
-
-	// Bottom
-	{ -0.5f, -0.5f, 0.5f, 0, 0, 128, 255 },
-	{  0.5f, -0.5f, 0.5f, 0, 0, 128, 255 },
-	{  0.5f, -0.5f,-0.5f, 0, 0, 128, 255 },
-	{  0.5f, -0.5f,-0.5f, 0, 0, 128, 255 },
-	{ -0.5f, -0.5f,-0.5f, 0, 0, 128, 255 },
-	{ -0.5f, -0.5f, 0.5f, 0, 0, 128, 255 },
-};
+const float SPACING = 10.0f; // space between individual cubes
+const float MIN_HEIGHT = 0.8f;
+const float MAX_HEIGHT = 6.0f;
+const float MIN_WIDTH = 0.8f;
+const float MAX_WIDTH = 6.0f;
+const float MIN_DEPTH = 0.8f;
+const float MAX_DEPTH = 6.0f;
 
 SampleCube::~SampleCube()
 {
 	printf("Destroying Cube Sample\n");
-	glDeleteVertexArrays(1, &m_vao);
-	glDeleteBuffers(1, &m_vbo);
-	glDeleteProgram(m_program);
+	for (Cube* pBuilding : m_buildings) // used pCube for readability purposes
+	{
+		delete pBuilding;
+	}
+	m_buildings.clear();
+
+	delete m_pOrbitCam;
+	delete m_pGrid;
 }
 
 void SampleCube::init()
 {
     // Only init if not already done
-    if(!m_program)
+    if(m_buildings.empty())
     {
-        glEnable(GL_DEPTH_TEST);
+		glEnable(GL_DEPTH_TEST);
 
-        m_program = wolf::LoadShaders("data/cube.vsh", "data/cube.fsh");
+		for(int row = 0; row < ROWS; ++row){
+			for(int col = 0; col < COLUMNS; ++col){
+				Cube* pBuilding = new Cube();
 
-        glGenVertexArrays(1, &m_vao);
-        glBindVertexArray(m_vao);
+				float width = wolf::randFloat(MIN_WIDTH, MAX_WIDTH);
+				float height = wolf::randFloat(MIN_HEIGHT, MAX_HEIGHT);
+				float depth = wolf::randFloat(MIN_DEPTH, MAX_DEPTH);
+				
+				// Center columns on both x and z
+				pBuilding ->setPosition(glm::vec3(
+					(col - (COLUMNS - 1) / 2.0f) * SPACING,
+    				(depth / 2.0f),
+    				(row - (ROWS - 1) / 2.0f) * SPACING
+				));
 
-        glGenBuffers(1, &m_vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * 6 * 3 * 2, gs_cubeVertices, GL_STATIC_DRAW);
+				pBuilding ->setScale(glm::vec3(
+					width,
+					depth,
+					height
+				));
 
-        // Set attribute pointers
-        int posAttr = glGetAttribLocation(m_program, "a_position");
-        int colorAttr = glGetAttribLocation(m_program, "a_color");
+				pBuilding ->setColor(
+								wolf::randFloat(0.3f, 1.0f), 	// red
+                                wolf::randFloat(0.3f, 1.0f),	// green
+                                wolf::randFloat(0.3f, 1.0f) 	// blue
+				);
 
-        glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
-        glVertexAttribPointer(posAttr,       // Attribute location
-                              3,              // Number of components
-                              GL_FLOAT,       // Type of each component
-                              GL_FALSE,       // Normalize?
-                              sizeof(Vertex), // Stride
-                              0);             // Offset
-        glEnableVertexAttribArray(posAttr);
+				m_buildings.push_back(pBuilding);
+			}
+		}
+		
 
-        glVertexAttribPointer(colorAttr,                       // Attribute location
-                              4,                              // Number of components
-                              GL_UNSIGNED_BYTE,               // Type of each component
-                              GL_TRUE,                        // Normalize?
-                              sizeof(Vertex),                 // Stride
-                              (void *)(sizeof(GLfloat) * 3)); // Offset
-        glEnableVertexAttribArray(colorAttr);
-    }
+		// Floor grid: 10 lines per half-space, spaced to match the cubes
+		m_pGrid = new Grid3D(100, 5.0f);
 
-    printf("Successfully initialized Cube Sample\n");
+		// Orbit camera: frame a box around the whole block of cubes
+		m_pOrbitCam = new OrbitCamera(m_pApp);
+		m_pOrbitCam->focusOn(glm::vec3(-2.0f, 0.0f, -14.0f), glm::vec3(2.0f, 2.0f, 1.0f));
+	}
+	printf("Successfully initialized Cube Sample\n");
 }
 
-void SampleCube::update(float dt) 
+void SampleCube::update(float dt)
 {
-	m_rot += dt;
+	m_pOrbitCam->update(dt);
 }
 
 void SampleCube::render(int width, int height)
@@ -116,21 +81,14 @@ void SampleCube::render(int width, int height)
 	glClearColor(0.3f, 0.3f, 0.3f, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Use shader program.
-    glUseProgram(m_program);
-    
-	glm::mat4 mProj = glm::perspective(glm::radians(60.0f), (float)width / (float)height, 0.1f, 1000.0f);
-	glm::mat4 mView = glm::lookAt(glm::vec3(0.0f,0.0f,2.0f), glm::vec3(0.0f,0.0f,0.0f), glm::vec3(0.0f,1.0f,0.0f));
-	glm::mat4 mWorld = glm::rotate(glm::mat4(1.0f), m_rot, glm::vec3(0.0f, 1.0f, 0.0f));
-	mWorld = mWorld * glm::rotate(glm::mat4(1.0f), m_rot, glm::vec3(1.0f, 0.0f, 0.0f));
 
-	glUniformMatrix4fv(glGetUniformLocation(m_program,"projection"), 1, GL_FALSE, glm::value_ptr(mProj));
-	glUniformMatrix4fv(glGetUniformLocation(m_program,"view"), 1, GL_FALSE, glm::value_ptr(mView));
-	glUniformMatrix4fv(glGetUniformLocation(m_program,"world"), 1, GL_FALSE, glm::value_ptr(mWorld));
-    
-	glBindVertexArray(m_vao);
+	glm::mat4 mProj = m_pOrbitCam->getProjMatrix(width, height);
+	glm::mat4 mView = m_pOrbitCam->getViewMatrix();
 
-    // Draw!
-	glDrawArrays(GL_TRIANGLES, 0, 6 * 3 * 2);
+	m_pGrid->render(mView, mProj);
+
+	for (Cube* pBuilding : m_buildings)
+	{
+	    pBuilding->render(mView, mProj);
+	}
 }
-
